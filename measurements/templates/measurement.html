@@ -1,0 +1,45 @@
+{% extends 'main.html' %}
+{% block content %}
+
+<div class="container mt-4">
+    <div class="card shadow-sm">
+        <div class="card-header text-white" style="background-color: #4a8fd4; border-radius: 0.5rem;">
+            <h5 class="mb-0">Замер № {{ customer_measurement.id }}</h5>
+        </div>
+        <div class="card-body">
+            <p class="card-text">
+                <strong>Имя:</strong> {{ customer_measurement.first_name }}
+            </p>
+            <p class="card-text">
+                <strong>Фамилия:</strong> {{ customer_measurement.last_name }}
+            </p>
+            <p class="card-text">
+                <strong>Телефон:</strong> {{ customer_measurement.phone }}
+            </p>
+            <p class="card-text">
+                <strong>Адрес:</strong> {{ customer_measurement.address }}
+            </p>
+            <p class="card-text">
+                <strong>Дата и время замера:</strong> {{ customer_measurement.measurement_date|date:"d.m.Y H:i" }}
+            </p>
+            <p class="card-text">
+                <strong>Дата и время создания:</strong> {{ customer_measurement.created_at|date:"d.m.Y, H:i" }}
+            </p>
+            <p class="card-text">
+                <strong>Мастер:</strong> {{ customer_measurement.master.first_name }} {{ customer_measurement.master.last_name }}
+            </p>
+            <p class="card-text">
+                <strong>Статус:</strong> {{ customer_measurement.get_status_display }}
+            </p>
+        </div>
+        <div class="card-footer text-right">
+            <a href="{% url 'home' %}" class="btn btn-secondary"><i class="fas fa-arrow-left"></i></a>
+            <a href="{% url 'delete_measurement' customer_measurement.id %}" class="btn btn-danger"><i class="fas fa-trash"></i></a>
+            <a href="{% url 'update_measurement' customer_measurement.id %}" class="btn" style="background-color: #4a8fd4"><i class="fas fa-edit"></i></a>
+        </div>
+    </div>
+</div>
+
+<link rel='stylesheet' href='https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css'>
+
+{% endblock %}
