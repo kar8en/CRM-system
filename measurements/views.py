@@ -9,23 +9,33 @@ def home(request):
     masters = Master.objects.all()
     measurements = Measurement.objects.all()
 
-    # Получаем выбранные значения из GET-запроса
-    selected_master = request.GET.get('master', '')
-    selected_status = request.GET.getlist('status')  # Используем getlist для получения всех выбранных статусов
+    selected_master = request.GET.getlist('master')
+    selected_status = request.GET.getlist('status')
 
-    # Фильтрация замеров по выбранным мастерам и статусам
     if selected_master:
-        measurements = measurements.filter(master_id=selected_master)
+        measurements = measurements.filter(master_id__in=selected_master)
 
     if selected_status:
         measurements = measurements.filter(status__in=selected_status)
+        
+    if request.method == 'POST':
+        username = request.POST['username']
+        password = request.POST['password']
+        user = authenticate(request, username=username, password=password)
+        if user is not None:
+            login(request, user)
+            messages.success(request, "Вы успешно вошли в систему")
+            return redirect('home')
+        else:
+            messages.error(request, "Ошибка. Попробуйте войти снова")
+            return redirect('home')
 
     context = {
         'measurements': measurements,
         'masters': masters,
         'selected_master': selected_master,
-        'selected_status': selected_status,  # Передаем выбранные статусы
-        'STATUS_CHOICES': Measurement.STATUS_CHOICES,  # Передаем доступные статусы
+        'selected_status': selected_status,
+        'STATUS_CHOICES': Measurement.STATUS_CHOICES,
     }
 
     return render(request, 'home.html', context)
