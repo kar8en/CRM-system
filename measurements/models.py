@@ -26,6 +26,7 @@ class Measurement(models.Model):
     phone = models.CharField(max_length=15)
     master = models.ForeignKey(Master, on_delete=models.SET_NULL, null=True, blank=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='created')
+    measurement_file = models.FileField(upload_to='measurements/', null=True, blank=True)
 
     class Meta:
         db_table = 'measurements'

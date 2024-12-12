@@ -75,7 +75,12 @@ class AddMeasurementForm(forms.ModelForm):
         widget=forms.Select(attrs={"class": "form-control"}),
         label="Статус"  
     )
+    measurement_file = forms.FileField(
+        required=False,
+        widget=forms.ClearableFileInput(attrs={"class": "form-control-file"}),
+        label="Файл замера (необязательно)"
+    )
 
     class Meta:
         model = Measurement
-        fields = ['first_name', 'last_name', 'phone', 'address', 'measurement_date', 'master', 'status']
+        fields = ['first_name', 'last_name', 'phone', 'address', 'measurement_date', 'master', 'status', 'measurement_file']

@@ -1,4 +1,4 @@
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import authenticate, login, logout
 from django.contrib import messages
 from .forms import SignUpForm, AddMeasurementForm
@@ -87,28 +87,34 @@ def delete_measurement(request, pk):
 
 
 def add_measurement(request):
-	form = AddMeasurementForm(request.POST or None)
-	if request.user.is_authenticated:
-		if request.method == "POST":
-			if form.is_valid():
-				add_measurement = form.save()
-				messages.success(request, "Замер добавлен")
-				return redirect('home')
-		return render(request, 'add_measurement.html', {'form':form})
-	else:
-		messages.success(request, "Необходимо войти в систему")
-		return redirect('home')
+    if not request.user.is_authenticated:
+        messages.error(request, "Необходимо войти в систему")
+        return redirect('home')
 
+    if request.method == "POST":
+        form = AddMeasurementForm(request.POST, request.FILES)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Замер добавлен")
+            return redirect('home')
+    else:
+        form = AddMeasurementForm()
+
+    return render(request, 'add_measurement.html', {'form': form})
 
 def update_measurement(request, pk):
-	if request.user.is_authenticated:
-		current_measurement = Measurement.objects.get(id=pk)
-		form = AddMeasurementForm(request.POST or None, instance=current_measurement)
-		if form.is_valid():
-			form.save()
-			messages.success(request, "Замер обновлен")
-			return redirect('home')
-		return render(request, 'update_measurement.html', {'form':form})
-	else:
-		messages.success(request, "Необходимо войти в систему")
-		return redirect('home')
+    if not request.user.is_authenticated:
+        messages.error(request, "Необходимо войти в систему")
+        return redirect('home')
+
+    current_measurement = get_object_or_404(Measurement, id=pk)
+    if request.method == "POST":
+        form = AddMeasurementForm(request.POST, request.FILES, instance=current_measurement)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Замер обновлен")
+            return redirect('home')
+    else:
+        form = AddMeasurementForm(instance=current_measurement)
+
+    return render(request, 'update_measurement.html', {'form': form})

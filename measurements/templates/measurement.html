@@ -31,6 +31,16 @@
             <p class="card-text">
                 <strong>Статус:</strong> {{ customer_measurement.get_status_display }}
             </p>
+            {% if customer_measurement.measurement_file %}
+                <p class="card-text">
+                    <strong>Файл замера:</strong>
+                    <a href="{{ customer_measurement.measurement_file }}" class="btn btn-link" download>
+                        <i class="fas fa-file-download fa-2x"></i>
+                    </a>
+                </p>
+            {% else %}
+                <p class="card-text text-muted">Файл замера отсутствует.</p>
+            {% endif %}
         </div>
         <div class="card-footer text-right">
             <a href="{% url 'home' %}" class="btn btn-secondary"><i class="fas fa-arrow-left"></i></a>
