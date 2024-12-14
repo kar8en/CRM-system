@@ -6,17 +6,24 @@
     </button>
     <div class="collapse navbar-collapse" id="navbarSupportedContent">
       <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
-        
+
         {% if user.is_authenticated %}
         <li class="nav-item">
-          <a class="nav-link" href="{% url 'logout' %}"><i class="fas fa-sign-out-alt"></i></a>
+          <a class="nav-link" href="{% url 'home' %}"><i class="fas fa-ruler-combined"></i> Замеры</a> 
+        <li class="nav-item">
+          <a class="nav-link" href="{% url 'order_list' %}"><i class="fas fa-shopping-cart"></i> Заказы</a> 
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="{% url 'logout' %}"><i class="fas fa-sign-out-alt"></i> Выйти</a>
         </li>
         {% else %}
-        {% comment %} <li class="nav-item">
-          <a class="nav-link" href="{% url 'register' %}"><i class="fas fa-user-plus"></i> Зарегистрироваться</a>
-        </li> {% endcomment %}
+        {% comment %} 
         <li class="nav-item">
-          <a class="nav-link" href="{% url 'home' %}"><i class="fas fa-sign-in-alt"></i></a>
+          <a class="nav-link" href="{% url 'register' %}"><i class="fas fa-user-plus"></i> Зарегистрироваться</a>
+        </li> 
+        {% endcomment %}
+        <li class="nav-item">
+          <a class="nav-link" href="{% url 'login' %}"><i class="fas fa-sign-in-alt"></i> Войти</a>
         </li>        
         {% endif %}
         
@@ -46,6 +53,6 @@
 }
 
 .custom-navbar .nav-link i {
-    font-size: 2rem; 
+    font-size: 1.5rem; /* Уменьшил размер иконок для лучшего визуального восприятия */
 }
 </style>

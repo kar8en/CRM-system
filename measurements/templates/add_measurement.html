@@ -5,7 +5,7 @@
 <h1>Добавить замер</h1>
 <br/>
 
-<form method="POST" action="{% url 'add_measurement' %}">
+<form method="POST" action="{% url 'add_measurement' %}" enctype="multipart/form-data" >
 	{% csrf_token %}
 	{{ form.as_p }}
 <br/>
@@ -17,3 +17,5 @@
 </div>
 
 {% endblock %}
+
+

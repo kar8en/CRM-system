@@ -5,7 +5,7 @@
 <h1>Обновить замер</h1>
 <br/>
 
-<form method="POST">
+<form method="POST" enctype="multipart/form-data" >
 	{% csrf_token %}
 
 	{{ form.as_p }}

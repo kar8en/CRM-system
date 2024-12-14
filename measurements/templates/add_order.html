@@ -1,0 +1,15 @@
+{% extends 'main.html' %}
+
+{% block content %}
+<div class="col-md-6 offset-md-3">
+    <h1>Добавить заказ</h1>
+    <br/>
+    <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <br/>
+        <button type="submit" class="btn btn-success">Добавить заказ</button>
+        <a href="{% url 'home' %}" class="btn btn-secondary">Вернуться</a>
+    </form>
+</div>
+{% endblock %}

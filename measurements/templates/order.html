@@ -1,0 +1,40 @@
+{% extends 'main.html' %}
+{% block content %}
+
+<div class="container mt-4">
+    <div class="card shadow-sm">
+        <div class="card-header text-white" style="background-color: #4a8fd4; border-radius: 0.5rem;">
+            <h5 class="mb-0">Заказ № {{ order.id }}</h5>
+        </div>
+        <div class="card-body">
+            <p class="card-text">
+                <strong>Стоимость:</strong> {{ order.cost }} ₽
+            </p>
+            <p class="card-text">
+                <strong>Дата выполнения:</strong> {{ order.execution_date|date:"d.m.Y H:i" }}
+            </p>
+            <p class="card-text">
+                <strong>Дата создания:</strong> {{ order.created_at|date:"d.m.Y, H:i" }}
+            </p>
+            <p class="card-text">
+                <strong>Мастер:</strong> {{ order.master.first_name }} {{ order.master.last_name }}
+            </p>
+            <p class="card-text">
+                <strong>Статус:</strong> {{ order.get_status_display }}
+            </p>
+            <p class="card-text">
+                <strong>Замер:</strong> 
+                <a href="{% url 'measurement' order.measurement.id %}">{{ order.measurement.id }}</a>
+            </p>
+        </div>
+        <div class="card-footer text-right">
+            <a href="{% url 'order_list' %}" class="btn btn-secondary"><i class="fas fa-arrow-left"></i></a>
+            <a href="{% url 'delete_order' order.id %}" class="btn btn-danger"><i class="fas fa-trash"></i></a>
+            <a href="{% url 'update_order' order.id %}" class="btn" style="background-color: #4a8fd4"><i class="fas fa-edit"></i></a>
+        </div>
+    </div>
+</div>
+
+<link rel='stylesheet' href='https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css'>
+
+{% endblock %}

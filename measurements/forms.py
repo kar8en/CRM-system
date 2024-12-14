@@ -1,7 +1,7 @@
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.models import User
 from django import forms
-from .models import Measurement, Master
+from .models import Measurement, Master, Order
 
 class SignUpForm(UserCreationForm):
 	email = forms.EmailField(label="", widget=forms.TextInput(attrs={'class':'form-control', 'placeholder':'Email'}))
@@ -75,7 +75,7 @@ class AddMeasurementForm(forms.ModelForm):
         widget=forms.Select(attrs={"class": "form-control"}),
         label="Статус"  
     )
-    measurement_file = forms.FileField(
+    file_measurement = forms.FileField(
         required=False,
         widget=forms.ClearableFileInput(attrs={"class": "form-control-file"}),
         label="Файл замера (необязательно)"
@@ -83,4 +83,48 @@ class AddMeasurementForm(forms.ModelForm):
 
     class Meta:
         model = Measurement
-        fields = ['first_name', 'last_name', 'phone', 'address', 'measurement_date', 'master', 'status', 'measurement_file']
+        fields = ['first_name', 'last_name', 'phone', 'address', 'measurement_date', 'master', 'status', 'file_measurement']
+        
+class AddOrderForm(forms.ModelForm):
+    measurement_id = forms.CharField(
+        required=True,
+        widget=forms.TextInput(attrs={"placeholder": "Введите номер замера", "class": "form-control"}),
+        label="Номер замера:"
+    )
+    
+    cost = forms.DecimalField(
+        required=True,
+        widget=forms.NumberInput(attrs={"placeholder": "Стоимость", "class": "form-control"}),
+        label="Стоимость:"
+    )
+    
+    execution_date = forms.DateTimeField(
+        required=True,
+        widget=forms.widgets.DateInput(attrs={
+            "placeholder": "Дата и время исполнения:",
+            "class": "form-control",
+            "type": "datetime-local"
+        }),
+        label="Дата и время исполнения:"
+    )
+    
+    master = forms.ModelChoiceField(
+        queryset=Master.objects.all(),
+        required=True,
+        widget=forms.Select(attrs={"class": "form-control"}),
+        label="Мастер:"
+    )
+    
+    status = forms.ChoiceField(
+        choices=[
+            ('pending', 'В ожидании'),
+            ('completed', 'Завершен'),
+            ('canceled', 'Отменен'),
+        ],
+        widget=forms.Select(attrs={"class": "form-control"}),
+        label="Статус"
+    )
+
+    class Meta:
+        model = Order
+        fields = ['measurement_id', 'cost', 'execution_date', 'master', 'status']
