@@ -1,3 +1,5 @@
+from django.core.validators import FileExtensionValidator
+from django.utils.translation import gettext_lazy as _
 from django.db import models
 
 class Master(models.Model):
@@ -26,8 +28,17 @@ class Measurement(models.Model):
     phone = models.CharField(max_length=15)
     master = models.ForeignKey(Master, on_delete=models.SET_NULL, null=True, blank=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='created')
-    file_measurement = models.FileField(upload_to='measurements/', null=True, blank=True)
-
+    file_measurement = models.FileField(
+        upload_to='measurements/',
+        null=True,
+        blank=True,
+        validators=[
+            FileExtensionValidator(
+                allowed_extensions=['pdf'],
+                message=_("Разрешены только PDF файлы.")
+            )
+        ]
+    )
     class Meta:
         db_table = 'measurements'
 

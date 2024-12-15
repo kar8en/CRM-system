@@ -77,8 +77,10 @@ class AddMeasurementForm(forms.ModelForm):
     )
     file_measurement = forms.FileField(
         required=False,
-        widget=forms.ClearableFileInput(attrs={"class": "form-control-file"}),
-        label="Файл замера (необязательно)"
+        widget=forms.ClearableFileInput(attrs={
+            "class": "form-control-file",
+            "accept": ".pdf" 
+        }),
     )
 
     class Meta:
@@ -128,3 +130,9 @@ class AddOrderForm(forms.ModelForm):
     class Meta:
         model = Order
         fields = ['measurement_id', 'cost', 'execution_date', 'master', 'status']
+        
+    def clean_measurement_id(self):
+        measurement_id = self.cleaned_data.get('measurement_id')
+        if measurement_id is not None and not isinstance(measurement_id, int):
+            raise forms.ValidationError("Номер замера должен быть целым числом.")
+        return measurement_id

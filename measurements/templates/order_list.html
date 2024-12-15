@@ -69,8 +69,12 @@
                 <td>{{ order.created_at|date:"d.m.Y H:i" }}</td> 
                 <td><a href="{% url 'measurement' order.measurement.id %}">{{ order.measurement.id }}</a></td>
                 <td>{{ order.master.first_name }} {{ order.master.last_name }}</td>  
-                <td>{{ order.cost }}</td>
-                <td><span class="{% if order.status == 'pending' %}badge bg-warning{% elif order.status == 'completed' %}badge bg-success{% elif order.status == 'canceled' %}badge bg-danger{% endif %}">{{ order.get_status_display }}</span></td>  
+                <td>{{ order.cost }} руб. </td>
+                <td style="text-align: center;">
+                    <span class="{% if order.status == 'pending' %}badge bg-warning{% elif order.status == 'completed' %}badge bg-success{% elif order.status == 'canceled' %}badge bg-danger{% endif %}">
+                        {{ order.get_status_display }}
+                    </span>
+                </td>  
             </tr>
         {% empty %}
             <tr>

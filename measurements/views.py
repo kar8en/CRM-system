@@ -22,17 +22,22 @@ def home(request):
 
     selected_master = request.GET.getlist('master')
     selected_status = request.GET.getlist('status')
+    address_query = request.GET.get('address', '')
 
     if selected_master:
         measurements = measurements.filter(master_id__in=selected_master)
 
     if selected_status:
         measurements = measurements.filter(status__in=selected_status)
-        
+
+    if address_query:
+        measurements = measurements.filter(address__icontains=address_query)
+
     if request.method == 'POST':
-        username = request.POST['username']
-        password = request.POST['password']
+        username = request.POST.get('username')
+        password = request.POST.get('password')
         user = authenticate(request, username=username, password=password)
+        
         if user is not None:
             login(request, user)
             messages.success(request, "Вы успешно вошли в систему")
@@ -46,6 +51,7 @@ def home(request):
         'masters': masters,
         'selected_master': selected_master,
         'selected_status': selected_status,
+        'address_query': address_query,
         'STATUS_CHOICES': Measurement.STATUS_CHOICES,
     }
 
@@ -183,18 +189,6 @@ def add_measurement(request):
 def delete_measurement(request, pk):
     if request.user.is_authenticated:
         measurement_to_delete = get_object_or_404(Measurement, id=pk)
-        object_name = measurement_to_delete.file_measurement.split('/')[-1]  
-
-        async def main():
-            s3_client = S3Client(
-                access_key=settings.AWS_ACCESS_KEY_ID,
-                secret_key=settings.AWS_SECRET_ACCESS_KEY,
-                endpoint_url=settings.URL,
-                bucket_name=settings.AWS_STORAGE_BUCKET_NAME,
-            )
-            await s3_client.delete_file(object_name)  
-
-        asyncio.run(main())
         measurement_to_delete.delete()
         messages.success(request, "Замер успешно удален")
         return redirect('home')
@@ -207,19 +201,39 @@ def update_measurement(request, pk):
     if not request.user.is_authenticated:
         messages.error(request, "Необходимо войти в систему")
         return redirect('home')
-
     current_measurement = get_object_or_404(Measurement, id=pk)
     if request.method == "POST":
         form = AddMeasurementForm(request.POST, request.FILES, instance=current_measurement)
         if form.is_valid():
-            form.save()
+            measurement = form.save(commit=False)
+            if request.FILES.get('file_measurement'):
+                file = request.FILES['file_measurement']
+                fs = FileSystemStorage()
+                filename = fs.save(file.name, file)
+                full_path = os.path.join(fs.location, filename)
+
+                key = f"measurement_{measurement.id}.pdf"
+                
+                async def main():
+                    s3_client = S3Client(
+                        access_key=settings.AWS_ACCESS_KEY_ID,
+                        secret_key=settings.AWS_SECRET_ACCESS_KEY,
+                        endpoint_url=settings.URL,
+                        bucket_name=settings.AWS_STORAGE_BUCKET_NAME,
+                    )
+                    await s3_client.upload_file(full_path, key)
+                    fs.delete(filename)
+
+                asyncio.run(main())
+                measurement.file_measurement = f"{settings.AWS_S3_CUSTOM_DOMAIN}/{settings.AWS_STORAGE_BUCKET_NAME}/{key}"
+
+            measurement.save() 
             messages.success(request, "Замер обновлен")
             return redirect('home')
     else:
         form = AddMeasurementForm(instance=current_measurement)
 
     return render(request, 'update_measurement.html', {'form': form})
-
 def add_order(request):
     if not request.user.is_authenticated:
         messages.error(request, "Необходимо войти в систему")
@@ -247,7 +261,7 @@ def add_order(request):
             order.save()
             
             messages.success(request, "Заказ добавлен")
-            return redirect('home')  
+            return redirect('order_list.html')  
     else:
         form = AddOrderForm()  
 
