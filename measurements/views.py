@@ -174,7 +174,7 @@ def add_measurement(request):
                     )
                     await s3_client.upload_file(file.temporary_file_path(), key)
                 asyncio.run(main())
-                measurement.file_measurement = f"{settings.AWS_S3_CUSTOM_DOMAIN}/{key}"
+                measurement.file_measurement = f"{settings.AWS_S3_CUSTOM_DOMAIN}/{settings.AWS_STORAGE_BUCKET_NAME}/{key}"
             measurement.save()
             messages.success(request, "Замер добавлен")
             return redirect('home')
