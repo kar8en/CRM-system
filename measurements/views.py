@@ -3,7 +3,15 @@ from django.contrib.auth import authenticate, login, logout
 from django.contrib import messages
 from .forms import SignUpForm, AddMeasurementForm, AddOrderForm
 from .models import Measurement, Master, Order
-
+import asyncio
+from contextlib import asynccontextmanager
+from aiobotocore.session import get_session
+from botocore.exceptions import ClientError
+from django.conf import settings
+import os
+from django.core.files.storage import default_storage
+from django.core.files.base import ContentFile
+from django.conf import settings
 
 def home(request):
     masters = Master.objects.all()
@@ -90,6 +98,60 @@ def delete_measurement(request, pk):
 		return redirect('home')
 
 
+class S3Client:
+    def __init__(
+            self,
+            access_key: str,
+            secret_key: str,
+            endpoint_url: str,
+            bucket_name: str,
+    ):
+        self.config = {
+            "aws_access_key_id": access_key,
+            "aws_secret_access_key": secret_key,
+            "endpoint_url": endpoint_url,
+        }
+        self.bucket_name = bucket_name
+        self.session = get_session()
+
+    @asynccontextmanager
+    async def get_client(self):
+        async with self.session.create_client("s3", **self.config) as client:
+            yield client
+
+    async def upload_file(self, file_path: str, object_name): 
+        try:
+            async with self.get_client() as client:
+                with open(file_path, "rb") as file:
+                    await client.put_object(
+                        Bucket=self.bucket_name,
+                        Key=object_name,
+                        Body=file,
+                    )
+                print(f"File {object_name} uploaded to {self.bucket_name}")
+        except ClientError as e:
+            print(f"Error uploading file: {e}")
+
+    async def delete_file(self, object_name: str):
+        try:
+            async with self.get_client() as client:
+                await client.delete_object(Bucket=self.bucket_name, Key=object_name)
+                print(f"File {object_name} deleted from {self.bucket_name}")
+        except ClientError as e:
+            print(f"Error deleting file: {e}")
+
+    async def get_file(self, object_name: str, destination_path: str):
+        try:
+            async with self.get_client() as client:
+                response = await client.get_object(Bucket=self.bucket_name, Key=object_name)
+                data = await response["Body"].read()
+                with open(destination_path, "wb") as file:
+                    file.write(data)
+                print(f"File {object_name} downloaded to {destination_path}")
+        except ClientError as e:
+            print(f"Error downloading file: {e}")
+
+
 def add_measurement(request):
     if not request.user.is_authenticated:
         messages.error(request, "Необходимо войти в систему")
@@ -98,7 +160,22 @@ def add_measurement(request):
     if request.method == "POST":
         form = AddMeasurementForm(request.POST, request.FILES)
         if form.is_valid():
-            form.save()
+            measurement = form.save(commit=False)
+            if request.FILES.get('file_measurement'):
+                file = request.FILES['file_measurement']
+                measurement.save()
+                key = f"measurement_{measurement.id}.pdf"
+                async def main():
+                    s3_client = S3Client(
+                            access_key=f'{settings.AWS_ACCESS_KEY_ID}',
+                            secret_key=f'{settings.AWS_SECRET_ACCESS_KEY}',
+                            endpoint_url=f'{settings.URL}',  
+                            bucket_name=f'{settings.AWS_STORAGE_BUCKET_NAME}',
+                    )
+                    await s3_client.upload_file(file.temporary_file_path(), key)
+                asyncio.run(main())
+                measurement.file_measurement = f"{settings.AWS_S3_CUSTOM_DOMAIN}/{key}"
+            measurement.save()
             messages.success(request, "Замер добавлен")
             return redirect('home')
     else:

@@ -99,3 +99,11 @@ STATIC_URL = 'static/'
 
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+AWS_ACCESS_KEY_ID = '1c1f0374136a4b4898b159abfe2fc017'  
+AWS_SECRET_ACCESS_KEY = '434394b72363415395e116b7e20b3855'  
+AWS_STORAGE_BUCKET_NAME = 'measurements-bucket' 
+AWS_S3_REGION_NAME = 'ru-1' 
+AWS_S3_CUSTOM_DOMAIN = 'https://c8630903-99ef-4588-980f-30e11ac13cf9.selstorage.ru'
+DEFAULT_FILE_STORAGE = 'storages.backends.s3.S3Boto3Storage'
+URL = 'https://s3.ru-1.storage.selcloud.ru/measurements-bucket/'
