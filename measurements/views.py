@@ -12,6 +12,9 @@ import os
 from django.core.files.storage import default_storage
 from django.core.files.base import ContentFile
 from django.conf import settings
+from django.core.files.storage import FileSystemStorage
+from django.shortcuts import render
+
 
 def home(request):
     masters = Master.objects.all()
@@ -87,17 +90,6 @@ def customer_order(request, pk):
         messages.error(request, "Необходимо войти в систему")
         return redirect('home')
 
-def delete_measurement(request, pk):
-	if request.user.is_authenticated:
-		delete_it = Measurement.objects.get(id=pk)
-		delete_it.delete()
-		messages.success(request, "Замер успешно удален")
-		return redirect('home')
-	else:
-		messages.success(request, "Необходимо войти в систему")
-		return redirect('home')
-
-
 class S3Client:
     def __init__(
             self,
@@ -163,6 +155,10 @@ def add_measurement(request):
             measurement = form.save(commit=False)
             if request.FILES.get('file_measurement'):
                 file = request.FILES['file_measurement']
+                fs = FileSystemStorage()
+                filename = fs.save(file.name, file) 
+                full_path = os.path.join(fs.location, filename)
+                print(full_path)
                 measurement.save()
                 key = f"measurement_{measurement.id}.pdf"
                 async def main():
@@ -172,7 +168,8 @@ def add_measurement(request):
                             endpoint_url=f'{settings.URL}',  
                             bucket_name=f'{settings.AWS_STORAGE_BUCKET_NAME}',
                     )
-                    await s3_client.upload_file(file.temporary_file_path(), key)
+                    await s3_client.upload_file(full_path, key)
+                    fs.delete(filename)
                 asyncio.run(main())
                 measurement.file_measurement = f"{settings.AWS_S3_CUSTOM_DOMAIN}/{settings.AWS_STORAGE_BUCKET_NAME}/{key}"
             measurement.save()
@@ -182,6 +179,29 @@ def add_measurement(request):
         form = AddMeasurementForm()
 
     return render(request, 'add_measurement.html', {'form': form})
+
+def delete_measurement(request, pk):
+    if request.user.is_authenticated:
+        measurement_to_delete = get_object_or_404(Measurement, id=pk)
+        object_name = measurement_to_delete.file_measurement.split('/')[-1]  
+
+        async def main():
+            s3_client = S3Client(
+                access_key=settings.AWS_ACCESS_KEY_ID,
+                secret_key=settings.AWS_SECRET_ACCESS_KEY,
+                endpoint_url=settings.URL,
+                bucket_name=settings.AWS_STORAGE_BUCKET_NAME,
+            )
+            await s3_client.delete_file(object_name)  
+
+        asyncio.run(main())
+        measurement_to_delete.delete()
+        messages.success(request, "Замер успешно удален")
+        return redirect('home')
+    else:
+        messages.error(request, "Необходимо войти в систему")
+        return redirect('home')
+
 
 def update_measurement(request, pk):
     if not request.user.is_authenticated:
