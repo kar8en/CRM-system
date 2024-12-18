@@ -2,6 +2,7 @@ from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.models import User
 from django import forms
 from .models import Measurement, Master, Order
+from .widgets import CustomClearableFileInput
 
 class SignUpForm(UserCreationForm):
 	email = forms.EmailField(label="", widget=forms.TextInput(attrs={'class':'form-control', 'placeholder':'Email'}))
@@ -82,10 +83,19 @@ class AddMeasurementForm(forms.ModelForm):
             "accept": ".pdf" 
         }),
     )
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['file_measurement'].label = ""
+        self.fields['file_measurement'].widget.clear_checkbox_label = 'Удалить файл'
+        self.fields['file_measurement'].widget.initial_text = ""
+        self.fields['file_measurement'].widget.input_text = "Выбрать файл"
+        
 
     class Meta:
         model = Measurement
         fields = ['first_name', 'last_name', 'phone', 'address', 'measurement_date', 'master', 'status', 'file_measurement']
+        
         
 class AddOrderForm(forms.ModelForm):
     measurement_id = forms.CharField(
@@ -133,6 +143,7 @@ class AddOrderForm(forms.ModelForm):
         
     def clean_measurement_id(self):
         measurement_id = self.cleaned_data.get('measurement_id')
-        if measurement_id is not None and not isinstance(measurement_id, int):
-            raise forms.ValidationError("Номер замера должен быть целым числом.")
+        if measurement_id is not None:
+            if not Measurement.objects.filter(id=measurement_id).exists():
+                raise forms.ValidationError("Неверный номер замера.")
         return measurement_id

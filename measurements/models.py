@@ -29,7 +29,6 @@ class Measurement(models.Model):
     master = models.ForeignKey(Master, on_delete=models.SET_NULL, null=True, blank=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='created')
     file_measurement = models.FileField(
-        upload_to='measurements/',
         null=True,
         blank=True,
         validators=[

@@ -3,14 +3,12 @@ from django.contrib.auth import authenticate, login, logout
 from django.contrib import messages
 from .forms import SignUpForm, AddMeasurementForm, AddOrderForm
 from .models import Measurement, Master, Order
-import asyncio
 from contextlib import asynccontextmanager
 from aiobotocore.session import get_session
 from botocore.exceptions import ClientError
 from django.conf import settings
 import os
-from django.core.files.storage import default_storage
-from django.core.files.base import ContentFile
+import boto3
 from django.conf import settings
 from django.core.files.storage import FileSystemStorage
 from django.shortcuts import render
@@ -150,6 +148,58 @@ class S3Client:
             print(f"Error downloading file: {e}")
 
 
+# def add_measurement(request):
+#     if not request.user.is_authenticated:
+#         messages.error(request, "Необходимо войти в систему")
+#         return redirect('home')
+
+#     if request.method == "POST":
+#         form = AddMeasurementForm(request.POST, request.FILES)
+#         if form.is_valid():
+#             measurement = form.save(commit=False)
+#             if request.FILES.get('file_measurement'):
+#                 file = request.FILES['file_measurement']
+#                 fs = FileSystemStorage()
+#                 filename = fs.save(file.name, file) 
+#                 full_path = os.path.join(fs.location, filename)
+#                 measurement.save()
+#                 key = f"measurement_{measurement.id}.pdf"
+#                 async def main():
+#                     s3_client = S3Client(
+#                             access_key=f'{settings.AWS_ACCESS_KEY_ID}',
+#                             secret_key=f'{settings.AWS_SECRET_ACCESS_KEY}',
+#                             endpoint_url=f'{settings.URL}',  
+#                             bucket_name=f'{settings.AWS_STORAGE_BUCKET_NAME}',
+#                     )
+#                     await s3_client.upload_file(full_path, key)
+#                     if os.path.exists(full_path):
+#                         os.remove(full_path)
+#                 asyncio.run(main())
+#                 measurement.file_measurement = f"{settings.AWS_S3_CUSTOM_DOMAIN}/{settings.AWS_STORAGE_BUCKET_NAME}/{key}"
+#             measurement.save()
+#             messages.success(request, "Замер добавлен")
+#             return redirect('home')
+#     else:
+#         form = AddMeasurementForm()
+
+#     return render(request, 'add_measurement.html', {'form': form})
+
+def upload_file_to_s3(file_path, bucket_name, key):
+    """Функция для загрузки файла в S3."""
+    s3_client = boto3.client(
+        's3',
+        aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
+        aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
+        endpoint_url=settings.URL,
+    )
+    
+    try:
+        s3_client.upload_file(file_path, bucket_name, key)
+        return True
+    except Exception as e:
+        print(f"Ошибка при загрузке файла: {str(e)}")
+        return False
+
 def add_measurement(request):
     if not request.user.is_authenticated:
         messages.error(request, "Необходимо войти в систему")
@@ -159,28 +209,39 @@ def add_measurement(request):
         form = AddMeasurementForm(request.POST, request.FILES)
         if form.is_valid():
             measurement = form.save(commit=False)
+
             if request.FILES.get('file_measurement'):
                 file = request.FILES['file_measurement']
                 fs = FileSystemStorage()
-                filename = fs.save(file.name, file) 
+                
+                
+                filename = fs.save(file.name, file)
                 full_path = os.path.join(fs.location, filename)
-                print(full_path)
                 measurement.save()
                 key = f"measurement_{measurement.id}.pdf"
-                async def main():
-                    s3_client = S3Client(
-                            access_key=f'{settings.AWS_ACCESS_KEY_ID}',
-                            secret_key=f'{settings.AWS_SECRET_ACCESS_KEY}',
-                            endpoint_url=f'{settings.URL}',  
-                            bucket_name=f'{settings.AWS_STORAGE_BUCKET_NAME}',
-                    )
-                    await s3_client.upload_file(full_path, key)
-                    fs.delete(filename)
-                asyncio.run(main())
-                measurement.file_measurement = f"{settings.AWS_S3_CUSTOM_DOMAIN}/{settings.AWS_STORAGE_BUCKET_NAME}/{key}"
-            measurement.save()
-            messages.success(request, "Замер добавлен")
-            return redirect('home')
+
+                
+                if upload_file_to_s3(full_path, settings.AWS_STORAGE_BUCKET_NAME, key):
+                    measurement.file_measurement = f"{settings.AWS_S3_CUSTOM_DOMAIN}/{settings.AWS_STORAGE_BUCKET_NAME}/{key}"
+                    
+                    try:
+                        os.remove(full_path)
+                        print(f"Файл {full_path} успешно удален.")
+                    except Exception as e:
+                        print(f"Ошибка при удалении файла: {str(e)}")
+                    
+                    messages.success(request, "Замер добавлен")
+                    measurement.save()
+                    return redirect('home')
+                else:
+                    messages.error(request, "Ошибка при загрузке файла.")
+                    if os.path.exists(full_path):
+                        try:
+                            os.remove(full_path)
+                            print(f"Файл {full_path} успешно удален.")
+                        except Exception as e:
+                            print(f"Ошибка при удалении файла: {str(e)}")
+            
     else:
         form = AddMeasurementForm()
 
@@ -213,27 +274,32 @@ def update_measurement(request, pk):
                 full_path = os.path.join(fs.location, filename)
 
                 key = f"measurement_{measurement.id}.pdf"
-                
-                async def main():
-                    s3_client = S3Client(
-                        access_key=settings.AWS_ACCESS_KEY_ID,
-                        secret_key=settings.AWS_SECRET_ACCESS_KEY,
-                        endpoint_url=settings.URL,
-                        bucket_name=settings.AWS_STORAGE_BUCKET_NAME,
-                    )
-                    await s3_client.upload_file(full_path, key)
-                    fs.delete(filename)
+                if upload_file_to_s3(full_path, settings.AWS_STORAGE_BUCKET_NAME, key):
+                    measurement.file_measurement = f"{settings.AWS_S3_CUSTOM_DOMAIN}/{settings.AWS_STORAGE_BUCKET_NAME}/{key}"
+                    
+                    try:
+                        os.remove(full_path)
+                        print(f"Файл {full_path} успешно удален.")
+                    except Exception as e:
+                        print(f"Ошибка при удалении файла: {str(e)}")
+                    
+                    messages.success(request, "Замер обновлен")
+                    measurement.save()
+                    return redirect('home')
+                else:
+                    messages.error(request, "Ошибка при загрузке файла.")
+                    if os.path.exists(full_path):
+                        try:
+                            os.remove(full_path)
+                            print(f"Файл {full_path} успешно удален.")
+                        except Exception as e:
+                            print(f"Ошибка при удалении файла: {str(e)}")
 
-                asyncio.run(main())
-                measurement.file_measurement = f"{settings.AWS_S3_CUSTOM_DOMAIN}/{settings.AWS_STORAGE_BUCKET_NAME}/{key}"
-
-            measurement.save() 
-            messages.success(request, "Замер обновлен")
-            return redirect('home')
     else:
         form = AddMeasurementForm(instance=current_measurement)
 
     return render(request, 'update_measurement.html', {'form': form})
+
 def add_order(request):
     if not request.user.is_authenticated:
         messages.error(request, "Необходимо войти в систему")
@@ -244,7 +310,6 @@ def add_order(request):
         
         if form.is_valid():
             measurement_id = form.cleaned_data['measurement_id']
-            
             try:
                 measurement = Measurement.objects.get(id=measurement_id)
             except Measurement.DoesNotExist:
@@ -259,13 +324,13 @@ def add_order(request):
                 status=form.cleaned_data['status']
             )
             order.save()
-            
             messages.success(request, "Заказ добавлен")
-            return redirect('order_list.html')  
+            return redirect('order_list')
     else:
-        form = AddOrderForm()  
+        form = AddOrderForm()
 
     return render(request, 'add_order.html', {'form': form})
+
 
 
 def order_list(request):
