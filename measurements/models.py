@@ -1,4 +1,5 @@
 from django.core.validators import FileExtensionValidator
+from django.core.validators import RegexValidator
 from django.utils.translation import gettext_lazy as _
 from django.db import models
 
@@ -22,10 +23,32 @@ class Measurement(models.Model):
 
     created_at = models.DateTimeField(auto_now_add=True) 
     measurement_date = models.DateTimeField()
-    first_name = models.CharField(max_length=50)
-    last_name = models.CharField(max_length=50)
+    first_name = models.CharField(
+        max_length=50,
+        validators=[
+            RegexValidator(
+                regex=r'^[A-Za-zА-Яа-яЁё\s-]+$',
+                message="Введите корректное имя."
+            )
+        ]
+    )
+    last_name = models.CharField(
+        max_length=50,
+        validators=[
+            RegexValidator(
+                regex=r'^[A-Za-zА-Яа-яЁё\s-]+$',
+                message="Введите корректную фамилию (только буквы)."
+            )
+        ]
+    )
     address = models.CharField(max_length=100)
-    phone = models.CharField(max_length=15)
+    phone = models.CharField(
+        validators=[
+            RegexValidator(
+                regex=r'^\+?[0-9\s\-()]{7,15}$',
+                message="Введите корректный номер телефона."
+            )
+        ])
     master = models.ForeignKey(Master, on_delete=models.SET_NULL, null=True, blank=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='created')
     file_measurement = models.FileField(

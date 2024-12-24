@@ -2,7 +2,7 @@ from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.models import User
 from django import forms
 from .models import Measurement, Master, Order
-from .widgets import CustomClearableFileInput
+from django.core.validators import MinValueValidator
 
 class SignUpForm(UserCreationForm):
 	email = forms.EmailField(label="", widget=forms.TextInput(attrs={'class':'form-control', 'placeholder':'Email'}))
@@ -86,10 +86,10 @@ class AddMeasurementForm(forms.ModelForm):
     
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields['file_measurement'].label = ""
+        self.fields['file_measurement'].label = "Работа с файлами"
         self.fields['file_measurement'].widget.clear_checkbox_label = 'Удалить файл'
-        self.fields['file_measurement'].widget.initial_text = ""
-        self.fields['file_measurement'].widget.input_text = "Выбрать файл"
+        self.fields['file_measurement'].widget.initial_text = "Действующий файл (ссылка S3)"
+        self.fields['file_measurement'].widget.input_text = "Выбрать файл "
         
 
     class Meta:
@@ -106,8 +106,12 @@ class AddOrderForm(forms.ModelForm):
     
     cost = forms.DecimalField(
         required=True,
-        widget=forms.NumberInput(attrs={"placeholder": "Стоимость", "class": "form-control"}),
-        label="Стоимость:"
+        widget=forms.NumberInput(attrs={
+            "placeholder": "Стоимость",
+            "class": "form-control"
+        }),
+        label="Стоимость:",
+        validators=[MinValueValidator(0, message="Стоимость должна быть неотрицательной.")]
     )
     
     execution_date = forms.DateTimeField(

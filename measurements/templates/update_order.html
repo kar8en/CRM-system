@@ -7,12 +7,10 @@
 
 <form method="POST" enctype="multipart/form-data">
 	{% csrf_token %}
-
 	{{ form.as_p }}
-
 <br/>
-  <button type="submit" class="btn btn-secondary">Обновить заказ</button>
-
+  <button type="submit" class="btn btn-success">Обновить заказ</button>
+  <a href="{% url 'order_list' %}" class="btn btn-secondary">Вернуться</a>
 </form>
 
 

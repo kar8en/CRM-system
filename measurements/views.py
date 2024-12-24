@@ -214,19 +214,17 @@ def add_measurement(request):
                 file = request.FILES['file_measurement']
                 fs = FileSystemStorage()
                 
-                
                 filename = fs.save(file.name, file)
                 full_path = os.path.join(fs.location, filename)
+
                 measurement.save()
                 key = f"measurement_{measurement.id}.pdf"
 
-                
                 if upload_file_to_s3(full_path, settings.AWS_STORAGE_BUCKET_NAME, key):
                     measurement.file_measurement = f"{settings.AWS_S3_CUSTOM_DOMAIN}/{settings.AWS_STORAGE_BUCKET_NAME}/{key}"
                     
                     try:
                         os.remove(full_path)
-                        print(f"Файл {full_path} успешно удален.")
                     except Exception as e:
                         print(f"Ошибка при удалении файла: {str(e)}")
                     
@@ -238,14 +236,18 @@ def add_measurement(request):
                     if os.path.exists(full_path):
                         try:
                             os.remove(full_path)
-                            print(f"Файл {full_path} успешно удален.")
                         except Exception as e:
                             print(f"Ошибка при удалении файла: {str(e)}")
-            
+            else:
+                measurement.save()
+                messages.success(request, "Замер добавлен без файла.")
+                return redirect('home')
+
     else:
         form = AddMeasurementForm()
 
     return render(request, 'add_measurement.html', {'form': form})
+
 
 def delete_measurement(request, pk):
     if request.user.is_authenticated:
@@ -264,7 +266,7 @@ def update_measurement(request, pk):
         return redirect('home')
     current_measurement = get_object_or_404(Measurement, id=pk)
     if request.method == "POST":
-        form = AddMeasurementForm(request.POST, request.FILES, instance=current_measurement)
+        form = AddMeasurementForm(request.POST, request.FILES, instance=current_measurement, initial={'file_measurement': current_measurement.file_measurement})
         if form.is_valid():
             measurement = form.save(commit=False)
             if request.FILES.get('file_measurement'):
@@ -330,6 +332,7 @@ def add_order(request):
         form = AddOrderForm()
 
     return render(request, 'add_order.html', {'form': form})
+
 
 
 
